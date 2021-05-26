@@ -2,6 +2,8 @@
 
 Inferencing the deep-high-resolution-net.pytoch without using Docker. 
 
+To run pre-built model, download 'models/pytorch/pose_coco/pose_hrnet_w32_384x288.pth' from google drive.
+
 ## Prep
 1. Download the researchers' pretrained pose estimator from [google drive](https://drive.google.com/drive/folders/1hOTihvbyIxsm5ygDpbUuJ7O_tzv4oXjC?usp=sharing) to this directory under `models/`
 2. Put the video file you'd like to infer on in this directory under `videos`
