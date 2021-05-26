@@ -8,6 +8,7 @@ import os
 import shutil
 
 from PIL import Image
+from numpy.lib.npyio import savetxt
 import torch
 import torch.nn.parallel
 import torch.backends.cudnn as cudnn
@@ -47,6 +48,8 @@ COCO_KEYPOINT_INDEXES = {
     15: 'left_ankle',
     16: 'right_ankle'
 }
+
+test_dict = COCO_KEYPOINT_INDEXES
 
 COCO_INSTANCE_CATEGORY_NAMES = [
     '__background__', 'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus',
@@ -107,7 +110,7 @@ def get_person_detection_boxes(model, img, threshold=0.5):
         return []
     # Get list of index with score greater than threshold
     pred_t = [pred_score.index(x) for x in pred_score if x > threshold][-1]
-    pred_boxes = pred_boxes[:pred_t+1]
+    pred_boxes = pred_boxes[:1]
     pred_classes = pred_classes[:pred_t+1]
 
     person_boxes = []
@@ -200,6 +203,7 @@ def parse_args():
     parser.add_argument('--image',type=str)
     parser.add_argument('--write',action='store_true')
     parser.add_argument('--showFps',action='store_true')
+    parser.add_argument('--output_dir',type=str, default='/')
 
     parser.add_argument('opts',
                         help='Modify config options using the command-line',
@@ -217,6 +221,8 @@ def parse_args():
 
 
 def main():
+
+    keypoints = None
     # cudnn related setting
     cudnn.benchmark = cfg.CUDNN.BENCHMARK
     torch.backends.cudnn.deterministic = cfg.CUDNN.DETERMINISTIC
@@ -244,100 +250,75 @@ def main():
     pose_model.eval()
 
     # Loading an video or an image or webcam 
-    if args.webcam:
-        vidcap = cv2.VideoCapture(0)
-    elif args.video:
+    # if args.webcam:
+    #     vidcap = cv2.VideoCapture(0)
+    if args.video:
         vidcap = cv2.VideoCapture(args.video)
-    elif args.image:
-        image_bgr = cv2.imread(args.image)
+    # elif args.image:
+    #     image_bgr = cv2.imread(args.image)
     else:
         print('please use --video or --webcam or --image to define the input.')
-        return 
+        return
 
-    if args.webcam or args.video:
-        if args.write:
-            save_path = 'output.avi'
-            fourcc = cv2.VideoWriter_fourcc(*'XVID')
-            out = cv2.VideoWriter(save_path,fourcc, 24.0, (int(vidcap.get(3)),int(vidcap.get(4))))
-        while True:
-            ret, image_bgr = vidcap.read()
-            if ret:
-                last_time = time.time()
-                image = image_bgr[:, :, [2, 1, 0]]
+    # if args.webcam or args.video:
+    if args.write:
+        save_path = args.output_dir + "/output.avi"
+        print(save_path)
+        fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        out = cv2.VideoWriter(save_path,fourcc, 24.0, (int(vidcap.get(3)),int(vidcap.get(4))))
+    
+    while True:
+        ret, image_bgr = vidcap.read()
+        if ret:
+            last_time = time.time()
+            image = image_bgr[:, :, [2, 1, 0]]
 
-                input = []
-                img = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
-                img_tensor = torch.from_numpy(img/255.).permute(2,0,1).float().to(CTX)
-                input.append(img_tensor)
+            input = []
+            img = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
+            img_tensor = torch.from_numpy(img/255.).permute(2,0,1).float().to(CTX)
+            input.append(img_tensor)
 
-                # object detection box
-                pred_boxes = get_person_detection_boxes(box_model, input, threshold=0.9)
+            # object detection box
+            pred_boxes = get_person_detection_boxes(box_model, input, threshold=0.95)
 
-                # pose estimation
-                if len(pred_boxes) >= 1:
-                    for box in pred_boxes:
-                        center, scale = box_to_center_scale(box, cfg.MODEL.IMAGE_SIZE[0], cfg.MODEL.IMAGE_SIZE[1])
-                        image_pose = image.copy() if cfg.DATASET.COLOR_RGB else image_bgr.copy()
-                        pose_preds = get_pose_estimation_prediction(pose_model, image_pose, center, scale)
-                        if len(pose_preds)>=1:
-                            for kpt in pose_preds:
-                                draw_pose(kpt,image_bgr) # draw the poses
+            # pose estimation
+            if len(pred_boxes) >= 1:
+                for box in pred_boxes:
+                    center, scale = box_to_center_scale(box, cfg.MODEL.IMAGE_SIZE[0], cfg.MODEL.IMAGE_SIZE[1])
+                    image_pose = image.copy() if cfg.DATASET.COLOR_RGB else image_bgr.copy()
+                    pose_preds = get_pose_estimation_prediction(pose_model, image_pose, center, scale)
+                    if len(pose_preds)>=1:
+                        for i, kpt in enumerate(pose_preds):
+                            name = COCO_KEYPOINT_INDEXES[i]
+                            if keypoints is None:
+                                keypoints = np.array([kpt])
+                            else:
+                                keypoints = np.append(keypoints, [kpt], axis = 0)
 
-                if args.showFps:
-                    fps = 1/(time.time()-last_time)
-                    img = cv2.putText(image_bgr, 'fps: '+ "%.2f"%(fps), (25, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 255, 0), 2)
+                            #print(f"{name}: {kpt}")   
+                            draw_pose(kpt,image_bgr) # draw the poses
 
-                if args.write:
-                    out.write(image_bgr)
+            if args.showFps:
+                fps = 1/(time.time()-last_time)
+                img = cv2.putText(image_bgr, 'fps: '+ "%.2f"%(fps), (25, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 255, 0), 2)
 
-                cv2.imshow('demo',image_bgr)
-                if cv2.waitKey(1) & 0XFF==ord('q'):
-                    break
-            else:
-                print('cannot load the video.')
-                break
+            if args.write:
+                out.write(image_bgr)
 
-        cv2.destroyAllWindows()
-        vidcap.release()
-        if args.write:
-            print('video has been saved as {}'.format(save_path))
-            out.release()
+            #cv2.imshow('demo',image_bgr)
+            #if cv2.waitKey(1) & 0XFF==ord('q'):
+            #    break
+        else:
+            print('Video ended')
+            break
 
-    else:
-        # estimate on the image
-        last_time = time.time()
-        image = image_bgr[:, :, [2, 1, 0]]
-
-        input = []
-        img = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
-        img_tensor = torch.from_numpy(img/255.).permute(2,0,1).float().to(CTX)
-        input.append(img_tensor)
-
-        # object detection box
-        pred_boxes = get_person_detection_boxes(box_model, input, threshold=0.9)
-
-        # pose estimation
-        if len(pred_boxes) >= 1:
-            for box in pred_boxes:
-                center, scale = box_to_center_scale(box, cfg.MODEL.IMAGE_SIZE[0], cfg.MODEL.IMAGE_SIZE[1])
-                image_pose = image.copy() if cfg.DATASET.COLOR_RGB else image_bgr.copy()
-                pose_preds = get_pose_estimation_prediction(pose_model, image_pose, center, scale)
-                if len(pose_preds)>=1:
-                    for kpt in pose_preds:
-                        draw_pose(kpt,image_bgr) # draw the poses
-        
-        if args.showFps:
-            fps = 1/(time.time()-last_time)
-            img = cv2.putText(image_bgr, 'fps: '+ "%.2f"%(fps), (25, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 255, 0), 2)
-        
-        if args.write:
-            save_path = 'output.jpg'
-            cv2.imwrite(save_path,image_bgr)
-            print('the result image has been saved as {}'.format(save_path))
-
-        cv2.imshow('demo',image_bgr)
-        if cv2.waitKey(0) & 0XFF==ord('q'):
-            cv2.destroyAllWindows()
+    print(keypoints)
+    np.save(f"{args.output_dir}/keypoints.dat", keypoints)
+    cv2.destroyAllWindows()
+    vidcap.release()
+    if args.write:
+        print('video has been saved as {}'.format(save_path))
+        out.release()
         
 if __name__ == '__main__':
     main()
