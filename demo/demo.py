@@ -49,8 +49,6 @@ COCO_KEYPOINT_INDEXES = {
     16: 'right_ankle'
 }
 
-test_dict = COCO_KEYPOINT_INDEXES
-
 COCO_INSTANCE_CATEGORY_NAMES = [
     '__background__', 'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus',
     'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'N/A', 'stop sign',
