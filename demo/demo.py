@@ -310,8 +310,8 @@ def main():
             print('Video ended')
             break
 
-    print(keypoints)
-    np.save(f"{args.output_dir}/keypoints.dat", keypoints)
+    np.save(f"{args.output_dir}/keypoints", keypoints)
+    print(f'keypoint saved to {args.output_dir}/keypoints.npy')
     cv2.destroyAllWindows()
     vidcap.release()
     if args.write:
