@@ -263,7 +263,8 @@ def main():
         save_path = args.output_dir + "/output.avi"
         print(save_path)
         fourcc = cv2.VideoWriter_fourcc(*'XVID')
-        out = cv2.VideoWriter(save_path,fourcc, 24.0, (int(vidcap.get(3)),int(vidcap.get(4))))
+        vid_fps = vidcap.get(cv2.CAP_PROP_FPS)
+        out = cv2.VideoWriter(save_path,fourcc, vid_fps, (int(vidcap.get(3)),int(vidcap.get(4))))
     
     while True:
         ret, image_bgr = vidcap.read()
