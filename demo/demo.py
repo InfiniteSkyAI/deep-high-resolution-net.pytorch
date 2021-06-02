@@ -3,12 +3,7 @@ from __future__ import division
 from __future__ import print_function
 
 import argparse
-import csv
-import os
-import shutil
 
-from PIL import Image
-from numpy.lib.npyio import savetxt
 import torch
 import torch.nn.parallel
 import torch.backends.cudnn as cudnn
