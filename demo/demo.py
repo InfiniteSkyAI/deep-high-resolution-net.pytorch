@@ -16,7 +16,6 @@ import cv2
 import numpy as np
 import time
 
-
 import _init_paths
 import models
 from config import cfg
@@ -187,6 +186,7 @@ def box_to_center_scale(box, model_image_width, model_image_height):
 
     return center, scale
 
+
 def parse_args():
     parser = argparse.ArgumentParser(description='Train keypoints network')
     # general
@@ -242,25 +242,13 @@ def main():
     pose_model.to(CTX)
     pose_model.eval()
 
-    # Loading an video or an image or webcam 
-    # if args.webcam:
-    #     vidcap = cv2.VideoCapture(0)
-    if args.video:
-        vidcap = cv2.VideoCapture(args.video)
-    # elif args.image:
-    #     image_bgr = cv2.imread(args.image)
-    else:
-        print('please use --video or --webcam or --image to define the input.')
-        return
+    # Loading an video or an video
+    vidcap = cv2.VideoCapture(args.video)
+    save_path = args.output_dir + "/output.avi"
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    vid_fps = vidcap.get(cv2.CAP_PROP_FPS)
+    out = cv2.VideoWriter(save_path,fourcc, vid_fps, (int(vidcap.get(3)),int(vidcap.get(4))))
 
-    # if args.webcam or args.video:
-    if args.write:
-        save_path = args.output_dir + "/output.avi"
-        print(save_path)
-        fourcc = cv2.VideoWriter_fourcc(*'XVID')
-        vid_fps = vidcap.get(cv2.CAP_PROP_FPS)
-        out = cv2.VideoWriter(save_path,fourcc, vid_fps, (int(vidcap.get(3)),int(vidcap.get(4))))
-    
     while True:
         ret, image_bgr = vidcap.read()
         if ret:
@@ -288,8 +276,6 @@ def main():
                                 keypoints = np.array([kpt])
                             else:
                                 keypoints = np.append(keypoints, [kpt], axis = 0)
-
-                            #print(f"{name}: {kpt}")   
                             draw_pose(kpt,image_bgr) # draw the poses
 
             if args.showFps:
@@ -299,9 +285,6 @@ def main():
             if args.write:
                 out.write(image_bgr)
 
-            #cv2.imshow('demo',image_bgr)
-            #if cv2.waitKey(1) & 0XFF==ord('q'):
-            #    break
         else:
             print('Video ended')
             break
@@ -313,6 +296,7 @@ def main():
     if args.write:
         print('video has been saved as {}'.format(save_path))
         out.release()
-        
+
+
 if __name__ == '__main__':
     main()
