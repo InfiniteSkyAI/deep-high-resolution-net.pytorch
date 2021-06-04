@@ -192,8 +192,6 @@ def parse_args():
     # general
     parser.add_argument('--cfg', type=str, default='demo/inference-config.yaml')
     parser.add_argument('--video', type=str)
-    parser.add_argument('--webcam',action='store_true')
-    parser.add_argument('--image',type=str)
     parser.add_argument('--write',action='store_true')
     parser.add_argument('--showFps',action='store_true')
     parser.add_argument('--output_dir',type=str, default='/')

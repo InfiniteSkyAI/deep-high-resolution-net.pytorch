@@ -1,3 +1,15 @@
+# Ifinite Sky Fork of Deep HRnet 2D pose estimation
+
+## Installation Instructions
+- Once this repo is cloned (using the build_stack.sh script in the `bootstrap` repository), the pre-trained model must be manually added. This may be updated in the future, but is not currently. 
+- The model is located at [this link](https://drive.google.com/drive/folders/1PufGmj1jHq3HSHr23Vne7UqQ2AETOgY4). The `models.zip` file should be downloaded and then extracted to the main directory for this repo (eg. the path `deep-high-resolution-net.pytorch/models/pytorch` should be a legitimate path). Once this model is placed, the detection can take place. 
+- Other dependencies for this repository are located in the `requirements.txt` file, and should be installed during the `build_env.sh` script, also located in the `bootstrap` repository.
+- Everything below this is from the `README` on the orginal repository that was forked, for reference sake. 
+
+## Inputs & Outputs
+- The main file currently interfaced in this repository is `demo.py`, located under the `demo/` directory. 
+- This file takes in the input file path (currently restricted to `.avi` format, but this can be extended for flexibility).
+
 # Deep High-Resolution Representation Learning for Human Pose Estimation (CVPR 2019)
 ## News
 - [2021/04/12] Welcome to check out our recent work on bottom-up pose estimation (CVPR 2021) [HRNet-DEKR](https://github.com/HRNet/DEKR)!
