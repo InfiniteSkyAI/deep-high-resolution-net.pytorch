@@ -9,6 +9,8 @@
 ## Inputs & Outputs
 - The main file currently interfaced in this repository is `demo.py`, located under the `demo/` directory. 
 - This file takes in the input file path (currently restricted to `.avi` format, but this can be extended for flexibility).
+- The output of the demo is both a video overlaying the detected key points and a numpy data file containing the joint positions at all key frames.
+- Post processing of these datapoints require the correct fps of the video, which is currently manually inputted into the prototype config file. This will be detected automatically in later additions. 
 
 # Deep High-Resolution Representation Learning for Human Pose Estimation (CVPR 2019)
 ## News
