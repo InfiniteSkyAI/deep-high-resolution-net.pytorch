@@ -279,6 +279,17 @@ def main():
                             else:
                                 keypoints = np.append(keypoints, [kpt], axis = 0)
                             draw_pose(kpt,image_bgr) # draw the poses
+                    else:
+                        if keypoints is None:
+                            keypoints = np.array([[[0, 0]]*len(COCO_KEYPOINT_INDEXES)])
+                        else:
+                            keypoints = np.append(keypoints, [[[0, 0]]*len(COCO_KEYPOINT_INDEXES)], axis=0)
+            else:
+                #Fill undetected frames with zero vectors
+                if keypoints is None:
+                    keypoints = np.array([[[0, 0]]*len(COCO_KEYPOINT_INDEXES)])
+                else:
+                    keypoints = np.append(keypoints, [[[0, 0]]*len(COCO_KEYPOINT_INDEXES)], axis=0)
 
             if args.showFps:
                 fps = 1/(time.time()-last_time)
