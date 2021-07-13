@@ -14,7 +14,7 @@ import torchvision.transforms as transforms
 import torchvision
 import cv2
 import numpy as np
-import time
+import os
 
 import _init_paths
 import models
@@ -211,7 +211,7 @@ def parse_args():
     return args
 
 
-def main():
+def get_deepHRnet_keypoints(video, output_dir=None, output_video=False, save_kpts=False):
 
     keypoints = None
     # cudnn related setting
@@ -219,8 +219,7 @@ def main():
     torch.backends.cudnn.deterministic = cfg.CUDNN.DETERMINISTIC
     torch.backends.cudnn.enabled = cfg.CUDNN.ENABLED
 
-    args = parse_args()
-    update_config(cfg, args)
+    #update_config(cfg, args)
 
     box_model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
     box_model.to(CTX)
@@ -245,16 +244,17 @@ def main():
     pose_model.eval()
 
     # Loading an video or an video
-    vidcap = cv2.VideoCapture(args.video)
-    save_path = args.output_dir + "/output.avi"
-    fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    vid_fps = vidcap.get(cv2.CAP_PROP_FPS)
-    out = cv2.VideoWriter(save_path,fourcc, vid_fps, (int(vidcap.get(3)),int(vidcap.get(4))))
+    vidcap = cv2.VideoCapture(video)
+    vid_name, vid_type = os.path.splitext(video)
+    if output_dir:
+        save_path = output_dir + f"/{vid_name}_deephrnet_output.{vid_type}"
+        fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        vid_fps = vidcap.get(cv2.CAP_PROP_FPS)
+        out = cv2.VideoWriter(save_path,fourcc, vid_fps, (int(vidcap.get(3)),int(vidcap.get(4))))
 
     while True:
         ret, image_bgr = vidcap.read()
         if ret:
-            last_time = time.time()
             image = image_bgr[:, :, [2, 1, 0]]
 
             input = []
@@ -291,25 +291,21 @@ def main():
                 else:
                     keypoints = np.append(keypoints, [[[np.nan, np.nan]]*len(COCO_KEYPOINT_INDEXES)], axis=0)
 
-            if args.showFps:
-                fps = 1/(time.time()-last_time)
-                img = cv2.putText(image_bgr, 'fps: '+ "%.2f"%(fps), (25, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 255, 0), 2)
-
-            if args.write:
+            if output_video:
                 out.write(image_bgr)
 
         else:
             print('Video ended')
             break
+    
+    if save_kpts:
+        np.save(f"{output_dir}/keypoints", keypoints)
+        print(f'keypoint saved to {output_dir}/keypoints.npy')
 
-    np.save(f"{args.output_dir}/keypoints", keypoints)
-    print(f'keypoint saved to {args.output_dir}/keypoints.npy')
     cv2.destroyAllWindows()
     vidcap.release()
-    if args.write:
+    if output_video:
         print('video has been saved as {}'.format(save_path))
         out.release()
 
-
-if __name__ == '__main__':
-    main()
+    return keypoints
