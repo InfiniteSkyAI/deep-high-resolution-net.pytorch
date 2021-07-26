@@ -23,6 +23,9 @@ from config import update_config
 from core.function import get_final_preds
 from utils.transforms import get_affine_transform
 
+import os 
+cur_dir = os.path.dirname(os.path.realpath(__file__))
+
 COCO_KEYPOINT_INDEXES = {
     0: 'nose',
     1: 'left_eye',
@@ -188,9 +191,10 @@ def box_to_center_scale(box, model_image_width, model_image_height):
 
 
 def parse_args():
+    
     parser = argparse.ArgumentParser(description='Train keypoints network')
     # general
-    parser.add_argument('--cfg', type=str, default='demo/inference-config.yaml')
+    parser.add_argument('--cfg', type=str, default=f'{cur_dir}/inference-config.yaml')
     parser.add_argument('--video', type=str)
     parser.add_argument('--write',action='store_true')
     parser.add_argument('--showFps',action='store_true')
@@ -211,7 +215,7 @@ def parse_args():
     return args
 
 
-def get_deepHRnet_keypoints(video, output_dir=None, output_video=False, save_kpts=False):
+def get_deepHRnet_keypoints(video, output_dir=None, output_video=False, save_kpts=False, custom_model=None):
 
     keypoints = None
     # cudnn related setting
@@ -219,7 +223,8 @@ def get_deepHRnet_keypoints(video, output_dir=None, output_video=False, save_kpt
     torch.backends.cudnn.deterministic = cfg.CUDNN.DETERMINISTIC
     torch.backends.cudnn.enabled = cfg.CUDNN.ENABLED
 
-    #update_config(cfg, args)
+    args = parse_args()
+    update_config(cfg, args)
 
     box_model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
     box_model.to(CTX)
@@ -229,15 +234,16 @@ def get_deepHRnet_keypoints(video, output_dir=None, output_video=False, save_kpt
         cfg, is_train=False
     )
 
-    if cfg.TEST.MODEL_FILE:
-        print('=> loading model from {}'.format(cfg.TEST.MODEL_FILE))
-        if torch.cuda.is_available():
-            pose_model.load_state_dict(torch.load(cfg.TEST.MODEL_FILE), strict=False)
-        else:
-            pose_model.load_state_dict(torch.load(cfg.TEST.MODEL_FILE, map_location='cpu'), strict=False)
-            
+    model_to_use = cfg.TEST.MODEL_FILE
+    if custom_model:
+        model_to_use = custom_model
+
+    print('=> loading model from {}'.format(model_to_use))
+    if torch.cuda.is_available():
+        pose_model.load_state_dict(torch.load(model_to_use), strict=False)
     else:
-        print('expected model defined in config at TEST.MODEL_FILE')
+        pose_model.load_state_dict(torch.load(model_to_use, map_location='cpu'), strict=False)
+            
 
     pose_model = torch.nn.DataParallel(pose_model, device_ids=cfg.GPUS)
     pose_model.to(CTX)
