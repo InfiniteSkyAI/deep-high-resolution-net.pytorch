@@ -258,10 +258,14 @@ def get_deepHRnet_keypoints(video, output_dir=None, output_video=False, save_kpt
         vid_fps = vidcap.get(cv2.CAP_PROP_FPS)
         out = cv2.VideoWriter(save_path,fourcc, vid_fps, (int(vidcap.get(3)),int(vidcap.get(4))))
 
+    frame_num = 0
     while True:
         ret, image_bgr = vidcap.read()
         if ret:
             image = image_bgr[:, :, [2, 1, 0]]
+
+            frame_num += 1
+            print(f"Processing frame {frame_num}")
 
             input = []
             img = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
