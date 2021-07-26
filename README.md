@@ -1,4 +1,4 @@
-# Ifinite Sky Fork of Deep HRnet 2D pose estimation
+# Infinite Sky Fork of Deep HRnet 2D pose estimation
 
 ## Installation Instructions
 - Once this repo is cloned (using the build_stack.sh script in the `bootstrap` repository), the pre-trained model must be manually added. This may be updated in the future, but is not currently. 
