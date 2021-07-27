@@ -1,16 +1,17 @@
 # Infinite Sky Fork of Deep HRnet 2D pose estimation
 
 ## Installation Instructions
-- Once this repo is cloned (using the build_stack.sh script in the `bootstrap` repository), the pre-trained model must be manually added. This may be updated in the future, but is not currently. 
-- The model is located at [this link](https://drive.google.com/drive/folders/1PufGmj1jHq3HSHr23Vne7UqQ2AETOgY4). The `models.zip` file should be downloaded and then extracted to the main directory for this repo (eg. the path `deep-high-resolution-net.pytorch/models/pytorch` should be a legitimate path). Once this model is placed, the detection can take place. 
-- Other dependencies for this repository are located in the `requirements.txt` file, and should be installed during the `build_env.sh` script, also located in the `bootstrap` repository.
-- Everything below this is from the `README` on the orginal repository that was forked, for reference sake. 
+ 1.  If the script `build_stack.sh` script has been run via `bootstrap`, this repository should already be cloned. The following instructions are for downloading the valid model. 
+ 2.   The model is located at [this link](https://drive.google.com/drive/folders/1PufGmj1jHq3HSHr23Vne7UqQ2AETOgY4). The `models.zip` file should be downloaded and then extracted to the main directory for this repo (eg. the path `deep-high-resolution-net.pytorch/models/pytorch` should be a legitimate path). Once this model is placed, the detection can take place. 
 
 ## Inputs & Outputs
 - The main file currently interfaced in this repository is `demo.py`, located under the `demo/` directory. 
 - This file takes in the input file path (currently restricted to `.avi` format, but this can be extended for flexibility).
 - The output of the demo is both a video overlaying the detected key points and a numpy data file containing the joint positions at all key frames.
 - Post processing of these datapoints require the correct fps of the video, which is currently manually inputted into the prototype config file. This will be detected automatically in later additions. 
+
+# Note: Everything below this is from the `README` on the orginal repository that was forked, for reference sake. 
+
 
 # Deep High-Resolution Representation Learning for Human Pose Estimation (CVPR 2019)
 ## News
