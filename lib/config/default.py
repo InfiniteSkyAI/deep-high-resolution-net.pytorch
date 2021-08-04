@@ -126,29 +126,29 @@ _C.DEBUG.SAVE_HEATMAPS_PRED = False
 def update_config(cfg, args):
     cfg.defrost()
     cfg.merge_from_file(args.cfg)
-    cfg.merge_from_list(args.opts)
+    # cfg.merge_from_list(args.opts)
 
-    if args.modelDir:
-        cfg.OUTPUT_DIR = args.modelDir
+    # if args.modelDir:
+    #     cfg.OUTPUT_DIR = args.modelDir
 
-    if args.logDir:
-        cfg.LOG_DIR = args.logDir
+    # if args.logDir:
+    #     cfg.LOG_DIR = args.logDir
 
-    if args.dataDir:
-        cfg.DATA_DIR = args.dataDir
+    # if args.dataDir:
+    #     cfg.DATA_DIR = args.dataDir
 
-    cfg.DATASET.ROOT = os.path.join(
-        cfg.DATA_DIR, cfg.DATASET.ROOT
-    )
+    # cfg.DATASET.ROOT = os.path.join(
+    #     cfg.DATA_DIR, cfg.DATASET.ROOT
+    # )
 
-    cfg.MODEL.PRETRAINED = os.path.join(
-        cfg.DATA_DIR, cfg.MODEL.PRETRAINED
-    )
+    # cfg.MODEL.PRETRAINED = os.path.join(
+    #     cfg.DATA_DIR, cfg.MODEL.PRETRAINED
+    # )
 
-    if cfg.TEST.MODEL_FILE:
-        cfg.TEST.MODEL_FILE = os.path.join(
-            cfg.DATA_DIR, cfg.TEST.MODEL_FILE
-        )
+    # if cfg.TEST.MODEL_FILE:
+    #     cfg.TEST.MODEL_FILE = os.path.join(
+    #         cfg.DATA_DIR, cfg.TEST.MODEL_FILE
+    #     )
 
     cfg.freeze()
 

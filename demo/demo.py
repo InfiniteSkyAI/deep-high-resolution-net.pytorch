@@ -190,30 +190,26 @@ def box_to_center_scale(box, model_image_width, model_image_height):
     return center, scale
 
 
-def parse_args():
+# def parse_args():
     
-    parser = argparse.ArgumentParser(description='Train keypoints network')
-    # general
-    parser.add_argument('--cfg', type=str, default=f'{cur_dir}/inference-config.yaml')
-    parser.add_argument('--video', type=str)
-    parser.add_argument('--write',action='store_true')
-    parser.add_argument('--showFps',action='store_true')
-    parser.add_argument('--output_dir',type=str, default='/')
+#     parser = argparse.ArgumentParser(description='Train keypoints network')
+#     # general
+#     parser.add_argument('--cfg', type=str, default=f'{cur_dir}/inference-config.yaml')
+#     parser.add_argument('--video', type=str)
+#     parser.add_argument('--write',action='store_true')
+#     parser.add_argument('--showFps',action='store_true')
+#     parser.add_argument('--output_dir',type=str, default='/')
 
-    parser.add_argument('opts',
-                        help='Modify config options using the command-line',
-                        default=None,
-                        nargs=argparse.REMAINDER)
+#     parser.add_argument('opts',
+#                         help='Modify config options using the command-line',
+#                         default=None,
+#                         nargs=argparse.REMAINDER)
 
-    args = parser.parse_args()
+#     args = parser.parse_args()
 
-    # args expected by supporting codebase  
-    args.modelDir = ''
-    args.logDir = ''
-    args.dataDir = ''
-    args.prevModelDir = ''
-    return args
-
+class Bunch:
+    def __init__(self, **kwds):
+        self.__dict__.update(kwds)
 
 def get_deepHRnet_keypoints(video, output_dir=None, output_video=False, save_kpts=False, custom_model=None):
 
@@ -223,8 +219,8 @@ def get_deepHRnet_keypoints(video, output_dir=None, output_video=False, save_kpt
     torch.backends.cudnn.deterministic = cfg.CUDNN.DETERMINISTIC
     torch.backends.cudnn.enabled = cfg.CUDNN.ENABLED
 
-    args = parse_args()
-    update_config(cfg, args)
+    #args = parses_args(video, output_dir)
+    update_config(cfg, Bunch(cfg=f'{cur_dir}/inference-config.yaml', opts=None))
 
     box_model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
     box_model.to(CTX)
