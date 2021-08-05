@@ -139,13 +139,13 @@ def get_pose_estimation_prediction(pose_model, image, center, scale):
     with torch.no_grad():
         # compute output heatmap
         output = pose_model(model_input)
-        preds, _ = get_final_preds(
+        preds, max_vals = get_final_preds(
             cfg,
             output.clone().cpu().numpy(),
             np.asarray([center]),
             np.asarray([scale]))
 
-        return preds
+        return np.concatenate((preds, max_vals),2)
 
 
 def box_to_center_scale(box, model_image_width, model_image_height):
@@ -284,18 +284,18 @@ def get_deepHRnet_keypoints(video, output_dir=None, output_video=False, save_kpt
                                 keypoints = np.array([kpt])
                             else:
                                 keypoints = np.append(keypoints, [kpt], axis = 0)
-                            draw_pose(kpt,image_bgr) # draw the poses
+                            #draw_pose(kpt,image_bgr) # draw the poses
                     else:
                         if keypoints is None:
-                            keypoints = np.array([[[np.nan, np.nan]]*len(COCO_KEYPOINT_INDEXES)])
+                            keypoints = np.array([[[0, 0, 0]]*len(COCO_KEYPOINT_INDEXES)])
                         else:
-                            keypoints = np.append(keypoints, [[[np.nan, np.nan]]*len(COCO_KEYPOINT_INDEXES)], axis=0)
+                            keypoints = np.append(keypoints, [[[0, 0, 0]]*len(COCO_KEYPOINT_INDEXES)], axis=0)
             else:
                 #Fill undetected frames with zero vectors
                 if keypoints is None:
-                    keypoints = np.array([[[np.nan, np.nan]]*len(COCO_KEYPOINT_INDEXES)])
+                    keypoints = np.array([[[0, 0, 0]]*len(COCO_KEYPOINT_INDEXES)])
                 else:
-                    keypoints = np.append(keypoints, [[[np.nan, np.nan]]*len(COCO_KEYPOINT_INDEXES)], axis=0)
+                    keypoints = np.append(keypoints, [[[0, 0, 0]]*len(COCO_KEYPOINT_INDEXES)], axis=0)
 
             if output_video:
                 out.write(image_bgr)
@@ -303,7 +303,6 @@ def get_deepHRnet_keypoints(video, output_dir=None, output_video=False, save_kpt
         else:
             print('Video ended')
             break
-    
     if save_kpts:
         np.save(f"{output_dir}/keypoints", keypoints)
         print(f'keypoint saved to {output_dir}/keypoints.npy')
