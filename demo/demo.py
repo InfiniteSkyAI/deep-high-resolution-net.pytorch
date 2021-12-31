@@ -115,7 +115,8 @@ def get_person_detection_boxes(model, img, tracker, id_num, threshold=0.5):
                   for i in list(pred[0]['boxes'].detach().cpu().numpy())]  # Bounding boxes
     pred_score = list(pred[0]['scores'].detach().cpu().numpy())
     if not pred_score or max(pred_score)<threshold:
-        return []
+        return [], id_num
+
     # Get list of index with score greater than threshold
     pred_t = [pred_score.index(x) for x in pred_score if x > threshold][-1]
     pred_boxes = pred_boxes[:pred_t+1]
@@ -124,7 +125,7 @@ def get_person_detection_boxes(model, img, tracker, id_num, threshold=0.5):
     person_boxes = []
     for idx, box in enumerate(pred_boxes):
         if pred_classes[idx] == 'person':
-            # Create array of structure [bb_x1, bb_y1, bb_x2, bb_y2, score] for use with SORT
+            # Create array of structure [bb_x1, bb_y1, bb_x2, bb_y2, score] for use with SORT tracker
             box = [coord for pos in box for coord in pos]
             box.append(pred_score[idx])
             person_boxes.append(box)
@@ -133,15 +134,20 @@ def get_person_detection_boxes(model, img, tracker, id_num, threshold=0.5):
     person_boxes = np.array(person_boxes)
     boxes_tracked = tracker.update(person_boxes)  
     
-    # If this is the first frame, get the ID of the bigger bounding box (person more in focus)  
+    # If this is the first frame, get the ID of the bigger bounding box (person more in focus, most likely the thrower)  
     if id_num is None:
         id_num = get_id_num(boxes_tracked)
 
     # Turn into [[(x1, y2), (x2, y2)]]
-    person_box = [box for box in boxes_tracked if box[4] == id_num][0]
-    person_box = [[(person_box[0], person_box[1]), (person_box[2], person_box[3])]]
+    try:
+        person_box = [box for box in boxes_tracked if box[4] == id_num][0]
+        person_box = [[(person_box[0], person_box[1]), (person_box[2], person_box[3])]]
+        return person_box, id_num
 
-    return person_box, id_num
+    # If detections weren't made for our thrower in a frame for some reason, return nothing to be smoothed later
+    # As long as the thrower is detected within the next 3 frames, it will be assigned the same ID as before
+    except IndexError:
+        return [], id_num
 
 
 def get_pose_estimation_prediction(pose_model, image, center, scale):
@@ -282,6 +288,7 @@ def get_deepHRnet_keypoints(video, output_dir=None, output_video=False, save_kpt
         vid_fps = vidcap.get(cv2.CAP_PROP_FPS)
         out = cv2.VideoWriter(save_path,fourcc, vid_fps, (int(vidcap.get(3)),int(vidcap.get(4))))
 
+    # Initialize SORT Tracker
     tracker = Sort.Sort(max_age=3)
     id_num = None
 
