@@ -96,6 +96,9 @@ def draw_bbox(box,img):
 
 
 def get_id_num(tracked_boxes):
+    """
+    Get the SORT tracker ID number of the bounding box with the biggest area 
+    """
     max_area = 0
     id_num = 0
     for box in tracked_boxes:
@@ -145,7 +148,7 @@ def get_person_detection_boxes(model, img, tracker, id_num, threshold=0.5):
         return person_box, id_num
 
     # If detections weren't made for our thrower in a frame for some reason, return nothing to be smoothed later
-    # As long as the thrower is detected within the next 3 frames, it will be assigned the same ID as before
+    # As long as the thrower is detected within the next "max_age" frames, it will be assigned the same ID as before
     except IndexError:
         return [], id_num
 
@@ -245,7 +248,7 @@ class Bunch:
     def __init__(self, **kwds):
         self.__dict__.update(kwds)
 
-def get_deepHRnet_keypoints(video, output_dir=None, output_video=False, save_kpts=False, custom_model=None):
+def get_deepHRnet_keypoints(video, output_dir=None, output_video=False, save_kpts=False, custom_model=None, max_age=3):
 
     keypoints = None
     # cudnn related setting
@@ -289,7 +292,7 @@ def get_deepHRnet_keypoints(video, output_dir=None, output_video=False, save_kpt
         out = cv2.VideoWriter(save_path,fourcc, vid_fps, (int(vidcap.get(3)),int(vidcap.get(4))))
 
     # Initialize SORT Tracker
-    tracker = Sort.Sort(max_age=3)
+    tracker = Sort.Sort(max_age=max_age)
     id_num = None
 
     frame_num = 0
