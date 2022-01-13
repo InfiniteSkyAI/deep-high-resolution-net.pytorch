@@ -22,6 +22,7 @@ from config import cfg
 from config import update_config
 from core.function import get_final_preds
 from utils.transforms import get_affine_transform
+import pose_estimation.sort as Sort
 
 import os 
 cur_dir = os.path.dirname(os.path.realpath(__file__))
@@ -94,7 +95,22 @@ def draw_bbox(box,img):
     cv2.rectangle(img, box[0], box[1], color=(0, 255, 0),thickness=3)
 
 
-def get_person_detection_boxes(model, img, threshold=0.5):
+def get_id_num(tracked_boxes):
+    """
+    Get the SORT tracker ID number of the bounding box with the biggest area 
+    """
+    max_area = 0
+    id_num = 0
+    for box in tracked_boxes:
+        box_area = (box[2] - box[0]) * (box[3] - box[1])
+        if box_area > max_area:
+            max_area = box_area
+            id_num = box[4]
+    
+    return id_num
+
+
+def get_person_detection_boxes(model, img, tracker, id_num, threshold=0.5):
     pred = model(img)
     pred_classes = [COCO_INSTANCE_CATEGORY_NAMES[i]
                     for i in list(pred[0]['labels'].cpu().numpy())]  # Get the Prediction Score
@@ -102,18 +118,39 @@ def get_person_detection_boxes(model, img, threshold=0.5):
                   for i in list(pred[0]['boxes'].detach().cpu().numpy())]  # Bounding boxes
     pred_score = list(pred[0]['scores'].detach().cpu().numpy())
     if not pred_score or max(pred_score)<threshold:
-        return []
+        return [], id_num
+
     # Get list of index with score greater than threshold
     pred_t = [pred_score.index(x) for x in pred_score if x > threshold][-1]
-    pred_boxes = pred_boxes[:1]
+    pred_boxes = pred_boxes[:pred_t+1]
     pred_classes = pred_classes[:pred_t+1]
 
     person_boxes = []
     for idx, box in enumerate(pred_boxes):
         if pred_classes[idx] == 'person':
+            # Create array of structure [bb_x1, bb_y1, bb_x2, bb_y2, score] for use with SORT tracker
+            box = [coord for pos in box for coord in pos]
+            box.append(pred_score[idx])
             person_boxes.append(box)
+    
+    # Get ID's for each person
+    person_boxes = np.array(person_boxes)
+    boxes_tracked = tracker.update(person_boxes)  
+    
+    # If this is the first frame, get the ID of the bigger bounding box (person more in focus, most likely the thrower)  
+    if id_num is None:
+        id_num = get_id_num(boxes_tracked)
 
-    return person_boxes
+    # Turn into [[(x1, y2), (x2, y2)]]
+    try:
+        person_box = [box for box in boxes_tracked if box[4] == id_num][0]
+        person_box = [[(person_box[0], person_box[1]), (person_box[2], person_box[3])]]
+        return person_box, id_num
+
+    # If detections weren't made for our thrower in a frame for some reason, return nothing to be smoothed later
+    # As long as the thrower is detected within the next "max_age" frames, it will be assigned the same ID as before
+    except IndexError:
+        return [], id_num
 
 
 def get_pose_estimation_prediction(pose_model, image, center, scale):
@@ -211,7 +248,7 @@ class Bunch:
     def __init__(self, **kwds):
         self.__dict__.update(kwds)
 
-def get_deepHRnet_keypoints(video, output_dir=None, output_video=False, save_kpts=False, custom_model=None):
+def get_deepHRnet_keypoints(video, output_dir=None, output_video=False, save_kpts=False, custom_model=None, max_age=3):
 
     keypoints = None
     # cudnn related setting
@@ -254,6 +291,10 @@ def get_deepHRnet_keypoints(video, output_dir=None, output_video=False, save_kpt
         vid_fps = vidcap.get(cv2.CAP_PROP_FPS)
         out = cv2.VideoWriter(save_path,fourcc, vid_fps, (int(vidcap.get(3)),int(vidcap.get(4))))
 
+    # Initialize SORT Tracker
+    tracker = Sort.Sort(max_age=max_age)
+    id_num = None
+
     frame_num = 0
     while True:
         ret, image_bgr = vidcap.read()
@@ -269,14 +310,14 @@ def get_deepHRnet_keypoints(video, output_dir=None, output_video=False, save_kpt
             input.append(img_tensor)
 
             # object detection box
-            pred_boxes = get_person_detection_boxes(box_model, input, threshold=0.95)
+            pred_boxes, id_num = get_person_detection_boxes(box_model, input, tracker, id_num, threshold=0.95)
 
             # pose estimation
             if len(pred_boxes) >= 1:
                 for box in pred_boxes:
                     center, scale = box_to_center_scale(box, cfg.MODEL.IMAGE_SIZE[0], cfg.MODEL.IMAGE_SIZE[1])
                     image_pose = image.copy() if cfg.DATASET.COLOR_RGB else image_bgr.copy()
-                    pose_preds = get_pose_estimation_prediction(pose_model, image_pose, center, scale)
+                    pose_preds = get_pose_estimation_prediction(pose_model, image_pose, center, scale)  
                     if len(pose_preds)>=1:
                         for i, kpt in enumerate(pose_preds):
                             name = COCO_KEYPOINT_INDEXES[i]
